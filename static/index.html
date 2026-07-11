@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TriageAI — Dashboard</title>
+<style>
+:root{
+  --bg:#0b1120; --card:#111a2e; --border:#1e2a45; --text:#e2e8f0; --muted:#8ea0b8;
+  --accent:#3b9eff; --critical:#f43f5e; --high:#fb923c; --medium:#facc15; --low:#4ade80;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+.container{max-width:1100px;margin:0 auto;padding:28px 20px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:26px}
+header svg{width:30px;height:30px;stroke:var(--accent)}
+header h1{font-size:1.35rem;font-weight:700}
+header .sub{color:var(--muted);font-size:.85rem;margin-left:auto}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:22px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.stat .n{font-size:1.7rem;font-weight:800;color:var(--accent)}
+.stat .l{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
+
+.panel{display:grid;grid-template-columns:340px 1fr;gap:18px}
+@media(max-width:860px){.panel{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.card h2{font-size:.95rem;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card h2 svg{width:16px;height:16px;stroke:var(--accent)}
+
+label{display:block;color:var(--muted);font-size:.78rem;margin:10px 0 4px}
+input,textarea,select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);padding:9px 12px;font-size:.9rem;font-family:inherit}
+input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{resize:vertical;min-height:90px}
+button{margin-top:14px;width:100%;background:var(--accent);color:#08111f;border:none;border-radius:8px;
+  padding:11px;font-weight:700;font-size:.92rem;cursor:pointer}
+button:hover{filter:brightness(1.1)}
+button:disabled{opacity:.5;cursor:wait}
+
+.filters{display:flex;gap:8px;margin-bottom:12px}
+.filters select{width:auto;font-size:.8rem;padding:6px 10px}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{color:var(--muted);text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;
+  padding:8px 10px;border-bottom:1px solid var(--border)}
+td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:hover td{background:rgba(59,158,255,.04)}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.72rem;font-weight:600}
+.b-critical{background:rgba(244,63,94,.15);color:var(--critical)}
+.b-high{background:rgba(251,146,60,.15);color:var(--high)}
+.b-medium{background:rgba(250,204,21,.12);color:var(--medium)}
+.b-low{background:rgba(74,222,128,.12);color:var(--low)}
+.b-cat{background:rgba(59,158,255,.12);color:var(--accent)}
+.b-eng{background:rgba(148,163,184,.12);color:var(--muted)}
+.resolve{background:none;border:1px solid var(--border);color:var(--muted);width:auto;margin:0;
+  padding:4px 10px;font-size:.72rem;border-radius:6px;font-weight:600}
+.resolve:hover{border-color:var(--low);color:var(--low)}
+.result{margin-top:12px;padding:12px;border-radius:8px;background:rgba(59,158,255,.08);
+  border:1px solid rgba(59,158,255,.25);font-size:.83rem;display:none}
+.empty{color:var(--muted);text-align:center;padding:30px;font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <svg fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2a4 4 0 0 1 4 4c0 1.95-1.4 3.58-3.25 3.93L12 22l-.75-12.07A4.001 4.001 0 0 1 12 2z"/>
+      <path d="M4 10h3M17 10h3M6 17l2-2M18 17l-2-2"/>
+    </svg>
+    <h1>TriageAI</h1>
+    <span class="sub">Intelligent support-ticket triage — LLM with deterministic fallback</span>
+  </header>
+
+  <div class="grid" id="stats"></div>
+
+  <div class="panel">
+    <div class="card">
+      <h2>
+        <svg fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Submit ticket
+      </h2>
+      <form id="form">
+        <label>Subject</label>
+        <input id="subject" required minlength="3" maxlength="200" placeholder="Payment charged twice this month">
+        <label>Description</label>
+        <textarea id="body" required minlength="3" placeholder="Describe the issue..."></textarea>
+        <label>Customer email</label>
+        <input id="email" type="email" value="demo@example.com">
+        <button id="submit" type="submit">Triage ticket</button>
+      </form>
+      <div class="result" id="result"></div>
+    </div>
+
+    <div class="card">
+      <h2>
+        <svg fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        Ticket queue
+      </h2>
+      <div class="filters">
+        <select id="f-priority"><option value="">All priorities</option>
+          <option>critical</option><option>high</option><option>medium</option><option>low</option></select>
+        <select id="f-category"><option value="">All categories</option>
+          <option>billing</option><option>technical</option><option>account</option><option>sales</option><option>other</option></select>
+        <select id="f-status"><option value="">All statuses</option><option>open</option><option>resolved</option></select>
+      </div>
+      <table>
+        <thead><tr><th>Ticket</th><th>Category</th><th>Priority</th><th>Engine</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none">No tickets yet — submit one on the left.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+async function loadStats(){
+  const s = await (await fetch('/api/stats')).json();
+  $('stats').innerHTML = `
+    <div class="stat"><div class="n">${s.total}</div><div class="l">Total tickets</div></div>
+    <div class="stat"><div class="n">${s.open}</div><div class="l">Open</div></div>
+    <div class="stat"><div class="n">${s.resolved}</div><div class="l">Resolved</div></div>
+    <div class="stat"><div class="n">${s.by_priority.critical||0}</div><div class="l">Critical</div></div>
+    <div class="stat"><div class="n">${Math.round(s.llm_share*100)}%</div><div class="l">LLM-classified</div></div>`;
+}
+
+async function loadTickets(){
+  const p = new URLSearchParams();
+  for (const [k,f] of [['priority','f-priority'],['category','f-category'],['status','f-status']])
+    if ($(f).value) p.set(k, $(f).value);
+  const list = await (await fetch('/api/tickets?'+p)).json();
+  $('empty').style.display = list.length ? 'none' : 'block';
+  $('rows').innerHTML = list.map(t => `
+    <tr style="${t.status==='resolved'?'opacity:.45':''}">
+      <td><strong>${esc(t.subject)}</strong><br>
+          <span style="color:var(--muted);font-size:.78rem">${esc(t.summary)}</span></td>
+      <td><span class="badge b-cat">${t.category}</span></td>
+      <td><span class="badge b-${t.priority}">${t.priority}</span></td>
+      <td><span class="badge b-eng">${t.engine} · ${Math.round(t.confidence*100)}%</span></td>
+      <td>${t.status==='open' ? `<button class="resolve" onclick="resolve(${t.id})">Resolve</button>` : ''}</td>
+    </tr>`).join('');
+}
+
+function esc(s){ const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
+
+async function resolve(id){
+  await fetch(`/api/tickets/${id}/resolve`, {method:'PATCH'});
+  refresh();
+}
+
+$('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('submit').disabled = true;
+  const r = await fetch('/api/tickets', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({subject:$('subject').value, body:$('body').value, customer_email:$('email').value})
+  });
+  $('submit').disabled = false;
+  if (r.ok){
+    const t = await r.json();
+    const el = $('result');
+    el.style.display = 'block';
+    el.innerHTML = `Classified as <span class="badge b-cat">${t.category}</span>
+      <span class="badge b-${t.priority}">${t.priority}</span>
+      sentiment: <strong>${t.sentiment}</strong> · engine: <strong>${t.engine}</strong>
+      · confidence: <strong>${Math.round(t.confidence*100)}%</strong>`;
+    $('form').reset(); $('email').value='demo@example.com';
+    refresh();
+  }
+});
+
+['f-priority','f-category','f-status'].forEach(f => $(f).addEventListener('change', loadTickets));
+function refresh(){ loadStats(); loadTickets(); }
+refresh();
+setInterval(refresh, 30000);
+</script>
+</body>
+</html>
