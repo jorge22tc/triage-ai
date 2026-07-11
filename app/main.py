@@ -18,7 +18,10 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="TriageAI",
     version=__version__,
-    description="Intelligent support-ticket triage: LLM classification with a deterministic fallback.",
+    description=(
+        "Intelligent support-ticket triage: "
+        "LLM classification with a deterministic fallback."
+    ),
 )
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"

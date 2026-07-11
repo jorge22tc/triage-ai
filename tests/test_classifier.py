@@ -20,7 +20,8 @@ def test_account_lockout_detected():
 
 
 def test_negative_sentiment():
-    t = _classify_heuristic("Terrible service", "This is unacceptable, I am frustrated and want to cancel")
+    t = _classify_heuristic(
+        "Terrible service", "This is unacceptable, I am frustrated and want to cancel")
     assert t.sentiment == "negative"
     assert t.priority in ("critical", "high")
 

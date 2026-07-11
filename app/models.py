@@ -1,5 +1,5 @@
 """ORM models."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -8,7 +8,7 @@ from .db import Base
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class Ticket(Base):
@@ -22,9 +22,12 @@ class Ticket(Base):
     customer_email: Mapped[str] = mapped_column(String(120), default="anonymous@example.com")
 
     # Triage results
-    category: Mapped[str] = mapped_column(String(40), index=True)      # billing | technical | account | sales | other
-    priority: Mapped[str] = mapped_column(String(10), index=True)      # critical | high | medium | low
-    sentiment: Mapped[str] = mapped_column(String(10))                 # negative | neutral | positive
+    # category: billing | technical | account | sales | other
+    category: Mapped[str] = mapped_column(String(40), index=True)
+    # priority: critical | high | medium | low
+    priority: Mapped[str] = mapped_column(String(10), index=True)
+    # sentiment: negative | neutral | positive
+    sentiment: Mapped[str] = mapped_column(String(10))
     confidence: Mapped[float] = mapped_column(Float, default=0.0)
     engine: Mapped[str] = mapped_column(String(20), default="heuristic")  # llm | heuristic
     summary: Mapped[str] = mapped_column(String(300), default="")
