@@ -90,6 +90,23 @@ curl -X POST localhost:8000/api/tickets \
 }
 ```
 
+## Optional: LangChain / LangGraph tier
+
+The same triage contract can run through a **LangGraph** state machine
+(`classify -> guard -> END`) built on **LangChain**, with structured output
+parsed by `PydanticOutputParser` instead of hand-rolled regex:
+
+```bash
+pip install -r requirements-langchain.txt
+export TRIAGE_ENGINE=langchain   # falls back to built-in tiers on any failure
+```
+
+The graph accepts any `BaseChatModel` by dependency injection, so the test
+suite runs it fully offline with `FakeListChatModel` — same guarantee as the
+core engine: an out-of-contract or failed generation can never poison the
+queue; the deterministic heuristic tier always answers.
+
+
 ## Tests
 
 ```bash

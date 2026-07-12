@@ -167,5 +167,20 @@ def _classify_heuristic(subject: str, body: str) -> Triage:
 
 # ------------------------------------------------------------------ public
 def classify(subject: str, body: str) -> Triage:
-    """Triage a ticket: try the LLM tier, fall back to heuristics."""
+    """Triage a ticket through the configured tiers, heuristics last.
+
+    Set ``TRIAGE_ENGINE=langchain`` (with ``requirements-langchain.txt``
+    installed) to route through the LangChain/LangGraph tier first. The
+    guarantee is unchanged: no upstream failure ever stops triage.
+    """
+    if os.getenv("TRIAGE_ENGINE", "").lower() == "langchain":
+        try:
+            from .lc_engine import classify_lc
+            result = classify_lc(subject, body)
+            if result is not None:
+                return result
+        except ImportError:
+            logger.warning(
+                "TRIAGE_ENGINE=langchain but extras not installed "
+                "(pip install -r requirements-langchain.txt); using built-in tiers")
     return _classify_llm(subject, body) or _classify_heuristic(subject, body)
